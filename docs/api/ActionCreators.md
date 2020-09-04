@@ -90,7 +90,7 @@ actions such as `CHANGE` or `BLUR`, the specific field.
 
 > Marks the given field as `active` and `visited`.
 
-### `initialize(form:String, data:Object, [keepDirty:boolean], [options:{keepDirty:boolean, keepSubmitSucceeded:boolean, updateUnregisteredFields:boolean, keepValues:boolean}])`
+### `initialize(form:String, data:Object, [keepDirty:boolean], [options:{keepDirty:boolean, keepSubmitSucceeded:boolean, updateUnregisteredFields:boolean, keepValues:boolean, updateDeepValues:boolean}])`
 
 > Sets the initial values in the form with which future data values will be
 > compared to calculate `dirty` and `pristine`. The `data` parameter may contain
@@ -111,6 +111,12 @@ actions such as `CHANGE` or `BLUR`, the specific field.
 
 > If the `keepValues` parameter is `true`, it will keep the old values and
 > initial values.
+
+> If the `updateDeepValues` parameter is `true`, it will update values of
+> deep initialized field where `keepDirty` alone was preventing from updating
+> values of an inner field if its neighbor field was dirty (a is dirty,
+> a.b is being initialized and a.c is dirty => `updateDeepValues` will update
+> the pristine and value of a.b).
 
 ### `registerField(form:String, name:String, type:String)`
 

@@ -351,6 +351,160 @@ const describeInitialize = (reducer, expect, { fromJS }) => () => {
     })
   })
 
+  it('updateDeepValues should update value of initialized field in a deep state with keepDirty', () => {
+    const state = reducer(
+      fromJS({
+        foo: {
+          registeredFields: {
+            myField: { name: 'myField', type: 'Field', count: 1 }
+          },
+          values: {
+            myField: {
+              myInnerDirtyField: 'dirtyValue',
+              myInnerField: 'initialValue'
+            }
+          },
+          initial: {
+            myField: {
+              myInnerDirtyField: 'initialValueOfDirtyField',
+              myInnerField: 'initialValue'
+            }
+          }
+        }
+      }),
+      initialize(
+        'foo',
+        {
+          myField: {
+            myInnerDirtyField: 'initialValueOfDirtyField',
+            myInnerField: 'newInitialValue'
+          }
+        },
+        true,
+        {
+          updateDeepValues: true,
+          updateUnregisteredFields: true
+        }
+      )
+    )
+    expect(state).toEqualMap({
+      foo: {
+        registeredFields: {
+          myField: { name: 'myField', type: 'Field', count: 1 }
+        },
+        values: {
+          myField: {
+            myInnerDirtyField: 'dirtyValue',
+            myInnerField: 'newInitialValue'
+          }
+        },
+        initial: {
+          myField: {
+            myInnerDirtyField: 'initialValueOfDirtyField',
+            myInnerField: 'newInitialValue'
+          }
+        }
+      }
+    })
+  })
+
+  it('updateDeepValues should update value of initialized field array in a deep state with keepDirty', () => {
+    const state = reducer(
+      fromJS({
+        foo: {
+          registeredFields: {
+            myField: { name: 'myField', type: 'Field', count: 1 }
+          },
+          values: {
+            myField: {
+              myArray: [
+                {
+                  myInnerDirtyField: 'dirtyValue',
+                  myInnerField: 'initialValue'
+                },
+                {
+                  myInnerDirtyField: 'dirtyValue2',
+                  myInnerField: 'initialValue2'
+                }
+              ]
+            }
+          },
+          initial: {
+            myField: {
+              myArray: [
+                {
+                  myInnerDirtyField: 'initialValueOfDirtyField',
+                  myInnerField: 'initialValue'
+                },
+                {
+                  myInnerDirtyField: 'initialValueOfDirtyField2',
+                  myInnerField: 'initialValue2'
+                }
+              ]
+            }
+          }
+        }
+      }),
+      initialize(
+        'foo',
+        {
+          myField: {
+            myArray: [
+              {
+                myInnerDirtyField: 'initialValueOfDirtyField',
+                myInnerField: 'newInitialValue'
+              },
+              {
+                myInnerDirtyField: 'initialValueOfDirtyField2',
+                myInnerField: 'newInitialValue2'
+              }
+            ]
+          }
+        },
+        true,
+        {
+          updateDeepValues: true,
+          updateUnregisteredFields: true
+        }
+      )
+    )
+    expect(state).toEqualMap({
+      foo: {
+        registeredFields: {
+          myField: { name: 'myField', type: 'Field', count: 1 }
+        },
+        values: {
+          myField: {
+            myArray: [
+              {
+                myInnerDirtyField: 'dirtyValue',
+                myInnerField: 'newInitialValue'
+              },
+              {
+                myInnerDirtyField: 'dirtyValue2',
+                myInnerField: 'newInitialValue2'
+              }
+            ]
+          }
+        },
+        initial: {
+          myField: {
+            myArray: [
+              {
+                myInnerDirtyField: 'initialValueOfDirtyField',
+                myInnerField: 'newInitialValue'
+              },
+              {
+                myInnerDirtyField: 'initialValueOfDirtyField2',
+                myInnerField: 'newInitialValue2'
+              }
+            ]
+          }
+        }
+      }
+    })
+  })
+
   it('should persist warnings if they exist', () => {
     const state = reducer(
       fromJS({

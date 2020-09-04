@@ -40,7 +40,8 @@ import {
 import createDeleteInWithCleanUp from './deleteInWithCleanUp'
 import plain from './structure/plain'
 import type { Action, Structure } from './types.js.flow'
-import { isFunction } from 'lodash'
+import { isFunction, isObject } from 'lodash'
+import { List } from 'immutable'
 
 const shouldDelete = ({ getIn }) => (state, path) => {
   let initialValuesPath = null
@@ -394,7 +395,8 @@ function createReducer<M, L>(structure: Structure<M, L>) {
           keepDirty,
           keepSubmitSucceeded,
           updateUnregisteredFields,
-          keepValues
+          keepValues,
+          updateDeepValues
         }
       }
     ) {
@@ -450,16 +452,50 @@ function createReducer<M, L>(structure: Structure<M, L>) {
           const overwritePristineValue = name => {
             const previousInitialValue = getIn(previousInitialValues, name)
             const previousValue = getIn(previousValues, name)
+            const newInitialValue = getIn(newInitialValues, name)
 
             if (deepEqual(previousValue, previousInitialValue)) {
               // Overwrite the old pristine value with the new pristine value
-              const newInitialValue = getIn(newInitialValues, name)
 
               // This check prevents any 'setIn' call that would create useless
               // nested objects, since the path to the new field value would
               // evaluate to the same (especially for undefined values)
               if (getIn(newValues, name) !== newInitialValue) {
                 newValues = setIn(newValues, name, newInitialValue)
+              }
+            } else if (updateDeepValues && isObject(newInitialValue)) {
+              //Need to analyse the inner elements of this Field
+              if (Array.isArray(newInitialValue) || List.isList(newInitialValue)) {
+                newInitialValue.forEach((value, index) => {
+                  if (
+                    (!Array.isArray(previousInitialValue) && !List.isList(newInitialValue)) ||
+                    previousInitialValue.length <= index
+                  ) {
+                    // new values at this level into the array
+                    newValues = setIn(newValues, `${name}[${index}]`, value)
+                  }
+
+                  if (updateUnregisteredFields) {
+                    overwritePristineValue(`${name}[${index}]`)
+                  }
+                })
+              } else {
+                forEach(keys(newInitialValue), innerElementName => {
+                  const previousInnerInitialValue = getIn(previousInitialValue, innerElementName)
+                  if (typeof previousInnerInitialValue === 'undefined') {
+                    // Add new values at this level.
+                    const newInitialInnerValue = getIn(newInitialValue, innerElementName)
+                    newValues = setIn(
+                      newValues,
+                      `${name}.${innerElementName}`,
+                      newInitialInnerValue
+                    )
+                  }
+
+                  if (updateUnregisteredFields) {
+                    overwritePristineValue(`${name}.${innerElementName}`)
+                  }
+                })
               }
             }
           }
@@ -795,8 +831,8 @@ function createReducer<M, L>(structure: Structure<M, L>) {
       // use 'function' keyword to enable 'this'
       return decorate(
         (state: any = empty, action: Action = { type: 'NONE' }) => {
-          const callPlugin = (processed: any, key: string) => {
-            const previousState = getIn(processed, key)
+        const callPlugin = (processed: any, key: string) => {
+          const previousState = getIn(processed, key)
             const nextState = reducers[key](
               previousState,
               action,
@@ -805,18 +841,18 @@ function createReducer<M, L>(structure: Structure<M, L>) {
             return nextState !== previousState
               ? setIn(processed, key, nextState)
               : processed
-          }
+        }
 
-          const processed = this(state, action) // run through redux-form reducer
-          const form = action && action.meta && action.meta.form
+        const processed = this(state, action) // run through redux-form reducer
+        const form = action && action.meta && action.meta.form
 
-          if (form && !config.receiveAllFormActions) {
-            // this is an action aimed at forms, so only give it to the specified form's plugin
-            return reducers[form] ? callPlugin(processed, form) : processed
-          } else {
-            // this is not a form-specific action, so send it to all the plugins
-            return Object.keys(reducers).reduce(callPlugin, processed)
-          }
+        if (form && !config.receiveAllFormActions) {
+          // this is an action aimed at forms, so only give it to the specified form's plugin
+          return reducers[form] ? callPlugin(processed, form) : processed
+        } else {
+          // this is not a form-specific action, so send it to all the plugins
+          return Object.keys(reducers).reduce(callPlugin, processed)
+        }
         }
       )
     }
