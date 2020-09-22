@@ -433,6 +433,8 @@ function createReducer<M, L>(structure: Structure<M, L>) {
       let newInitialValues = mapData
       let newValues = previousValues
 
+      console.log('overwritePristineValue:Start','previousValues=',previousValues,'previousInitialValues=',previousInitialValues,'newInitialValues=',newInitialValues,'newValues=',newValues);
+
       if (keepDirty && registeredFields) {
         if (!deepEqual(newInitialValues, previousInitialValues)) {
           //
@@ -452,6 +454,7 @@ function createReducer<M, L>(structure: Structure<M, L>) {
             const previousInitialValue = getIn(previousInitialValues, name)
             const previousValue = getIn(previousValues, name)
             const newInitialValue = getIn(newInitialValues, name)
+            
 
             if (deepEqual(previousValue, previousInitialValue)) {
               // Overwrite the old pristine value with the new pristine value
@@ -461,6 +464,10 @@ function createReducer<M, L>(structure: Structure<M, L>) {
               // evaluate to the same (especially for undefined values)
               if (getIn(newValues, name) !== newInitialValue) {
                 newValues = setIn(newValues, name, newInitialValue)
+
+                console.log('overwritePristineValue:deepEqual:different','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue, 'newValues=',newValues);
+              } else {
+                console.log('overwritePristineValue:deepEqual:ignore','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue);
               }
             } else if (updateDeepValues && isObject(newInitialValue)) {
               //Need to analyse the inner elements of this Field
@@ -472,6 +479,8 @@ function createReducer<M, L>(structure: Structure<M, L>) {
                   ) {
                     // new values at this level into the array
                     newValues = setIn(newValues, `${name}[${index}]`, value)
+
+                    console.log('overwritePristineValue:object:array','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue,'newValues=',newValues);
                   }
 
                   if (updateUnregisteredFields) {
@@ -482,6 +491,7 @@ function createReducer<M, L>(structure: Structure<M, L>) {
                 forEach(keys(newInitialValue), (innerElementName) => {
                   const previousInnerInitialValue = getIn(previousInitialValue, innerElementName)
                   if (previousInnerInitialValue === undefined) {
+
                     // Add new values at this level.
                     const newInitialInnerValue = getIn(newInitialValue, innerElementName)
                     newValues = setIn(
@@ -489,6 +499,8 @@ function createReducer<M, L>(structure: Structure<M, L>) {
                       `${name}.${innerElementName}`,
                       newInitialInnerValue
                     )
+
+                    console.log('overwritePristineValue:object:any','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue,'newInitialInnerValue=',newInitialInnerValue,'newValues=',newValues);
                   }
 
                   if (updateUnregisteredFields) {
