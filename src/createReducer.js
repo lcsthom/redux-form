@@ -56,6 +56,8 @@ const shouldDelete = ({ getIn }) => (state, path) => {
   return getIn(state, path) !== undefined && initialValueComparison
 }
 
+const DEBUG=false;
+
 const isReduxFormAction = action =>
   action &&
   action.type &&
@@ -433,7 +435,7 @@ function createReducer<M, L>(structure: Structure<M, L>) {
       let newInitialValues = mapData
       let newValues = previousValues
 
-      console.log('overwritePristineValue:Start','previousValues=',previousValues,'previousInitialValues=',previousInitialValues,'newInitialValues=',newInitialValues,'newValues=',newValues);
+      if (DEBUG) console.log('overwritePristineValue:Start','previousValues=',previousValues,'previousInitialValues=',previousInitialValues,'newInitialValues=',newInitialValues,'newValues=',newValues);
 
       if (keepDirty && registeredFields) {
         if (!deepEqual(newInitialValues, previousInitialValues)) {
@@ -462,53 +464,57 @@ function createReducer<M, L>(structure: Structure<M, L>) {
               // This check prevents any 'setIn' call that would create useless
               // nested objects, since the path to the new field value would
               // evaluate to the same (especially for undefined values)
-              if (getIn(newValues, name) !== newInitialValue) {
+              if (!deepEqual(getIn(newValues, name), newInitialValue)) {
                 newValues = setIn(newValues, name, newInitialValue)
 
-                console.log('overwritePristineValue:deepEqual:different','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue, 'newValues=',newValues);
+                if (DEBUG) console.log('overwritePristineValue:deepEqual:different','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue, 'newValues=',newValues);
               } else {
-                console.log('overwritePristineValue:deepEqual:ignore','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue);
+                if (DEBUG) console.log('overwritePristineValue:deepEqual:ignore','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue);
               }
-            } else if (updateDeepValues && isObject(newInitialValue)) {
-              //Need to analyse the inner elements of this Field
-              if (Array.isArray(newInitialValue)) {
-                newInitialValue.forEach((value, index) => {
-                  if (
-                    (!Array.isArray(previousInitialValue)) ||
-                    previousInitialValue.length <= index
-                  ) {
-                    // new values at this level into the array
-                    newValues = setIn(newValues, `${name}[${index}]`, value)
-
-                    console.log('overwritePristineValue:object:array','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue,'newValues=',newValues);
-                  }
-
-                  if (updateUnregisteredFields) {
-                    overwritePristineValue(`${name}[${index}]`)
-                  }
-                })
-              } else {
-                forEach(keys(newInitialValue), (innerElementName) => {
-                  const previousInnerInitialValue = getIn(previousInitialValue, innerElementName)
-                  if (previousInnerInitialValue === undefined) {
-
-                    // Add new values at this level.
-                    const newInitialInnerValue = getIn(newInitialValue, innerElementName)
-                    newValues = setIn(
-                      newValues,
-                      `${name}.${innerElementName}`,
-                      newInitialInnerValue
-                    )
-
-                    console.log('overwritePristineValue:object:any','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue,'newInitialInnerValue=',newInitialInnerValue,'newValues=',newValues);
-                  }
-
-                  if (updateUnregisteredFields) {
-                    overwritePristineValue(`${name}.${innerElementName}`)
-                  }
-                })
-              }
+              return
+            } 
+            if (!updateDeepValues) {
+              return
             }
+            if (!isObject(newInitialValue)) {
+              return
+            }
+            //Need to analyse the inner elements of this Field
+            if (Array.isArray(newInitialValue)) {
+              newInitialValue.forEach((value, index) => {
+                if ((!Array.isArray(previousInitialValue)) ||  previousInitialValue.length <= index) {
+                  // new values at this level into the array
+                  newValues = setIn(newValues, `${name}[${index}]`, value)
+
+                  if (DEBUG)  console.log('overwritePristineValue:object:array','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue,'newValues=',newValues);
+                }
+
+                if (updateUnregisteredFields) {
+                  overwritePristineValue(`${name}[${index}]`)
+                }
+              })
+              return;
+            } 
+          
+            forEach(keys(newInitialValue), (innerElementName) => {
+              const previousInnerInitialValue = getIn(previousInitialValue, innerElementName)
+              if (previousInnerInitialValue === undefined) {
+
+                // Add new values at this level.
+                const newInitialInnerValue = getIn(newInitialValue, innerElementName)
+                newValues = setIn(
+                  newValues,
+                  `${name}.${innerElementName}`,
+                  newInitialInnerValue
+                )
+
+                if (DEBUG) console.log('overwritePristineValue:object:any', 'name=', name, 'previousInitialValue=', previousInitialValue, 'previousValue=', previousValue, 'newInitialValue=', newInitialValue, 'newInitialInnerValue=', newInitialInnerValue, 'newValues=', newValues);
+              }
+
+              if (updateUnregisteredFields) {
+                overwritePristineValue(`${name}.${innerElementName}`)
+              }
+            })
           }
 
           if (!updateUnregisteredFields) {
