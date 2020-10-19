@@ -820,6 +820,87 @@ const describeInitialize = (reducer, expect, { fromJS }) => () => {
       }
     })
   })
+
+  it('should overwrite all values as they are all pristine and add the new item in the array', () => {
+    const values = {
+      myField: [{ name: 'One' }, { name: 'Two' }]
+    }
+    const initial = {
+      myField: [{ name: 'One' }, { name: 'Two' }]
+    }
+
+    const newInitial = {
+      myField: [{ name: 'One' }, { name: 'Four' }, { name: 'Five' }]
+    }
+
+    const registeredFields = {}
+
+    const state = reducer(
+      fromJS({ foo: { registeredFields, values, initial } }),
+      initialize('foo', newInitial, true, { updateUnregisteredFields: true })
+    )
+
+    expect(state).toEqualMap({
+      foo: { registeredFields, values: newInitial, initial: newInitial }
+    })
+  })
+
+  it('should keep only dirty value as keepDirty is true', () => {
+    const values = {
+      myField: [{ name: 'Four' }, { name: 'Five' }, { name: 'Three' }]
+    }
+    const initial = {
+      myField: [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }]
+    }
+
+    const newInitial = {
+      myField: [{ name: 'One' }]
+    }
+
+    const registeredFields = {}
+
+    const state = reducer(
+      fromJS({ foo: { registeredFields, values, initial } }),
+      initialize('foo', newInitial, true, { updateUnregisteredFields: true })
+    )
+
+    expect(state).toEqualMap({
+      foo: {
+        registeredFields,
+        values: { myField: [{ name: 'Four' }, { name: 'Five' }, { name: 'Three' }] },
+        initial: newInitial
+      }
+    })
+  })
+
+  it('should keep only dirty value as keepDirty is true even if value is undefined', () => {
+    const values = {
+      myField: [{ name: 'One' }]
+    }
+    const initial = {
+      myField: [{ name: 'One' }, { name: 'Two' }]
+    }
+
+    const newInitial = {
+      myField: [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }]
+    }
+
+    const registeredFields = {}
+
+    const state = reducer(
+      fromJS({ foo: { registeredFields, values, initial } }),
+      initialize('foo', newInitial, true, { updateUnregisteredFields: true })
+    )
+
+    expect(state).toEqualMap({
+      foo: {
+        registeredFields,
+        values: { myField: [{ name: 'One' }, undefined, { name: 'Three' }] },
+        initial: newInitial
+      }
+    })
+  })
+
 }
 
 export default describeInitialize

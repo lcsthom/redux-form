@@ -458,6 +458,7 @@ function createReducer<M, L>(structure: Structure<M, L>) {
             const previousValue = getIn(previousValues, name)
             const newInitialValue = getIn(newInitialValues, name)
 
+            // If no new initial value
             if (!newInitialValue) {
               return
             }
