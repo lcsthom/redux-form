@@ -40,7 +40,8 @@ import {
 import createDeleteInWithCleanUp from './deleteInWithCleanUp'
 import plain from './structure/plain'
 import type { Action, Structure } from './types.js.flow'
-import { isFunction, isObject } from 'lodash'
+import isFunction from 'lodash/isFunction'
+import isPlainObject from 'lodash/isPlainObject'
 
 const shouldDelete = ({ getIn }) => (state, path) => {
   let initialValuesPath = null
@@ -56,7 +57,7 @@ const shouldDelete = ({ getIn }) => (state, path) => {
   return getIn(state, path) !== undefined && initialValueComparison
 }
 
-const DEBUG=false;
+const DEBUG = false
 
 const isReduxFormAction = action =>
   action &&
@@ -435,7 +436,7 @@ function createReducer<M, L>(structure: Structure<M, L>) {
       let newInitialValues = mapData
       let newValues = previousValues
 
-      if (DEBUG) console.log('overwritePristineValue:Start','previousValues=',previousValues,'previousInitialValues=',previousInitialValues,'newInitialValues=',newInitialValues,'newValues=',newValues);
+      if (DEBUG) console.log('overwritePristineValue:Start', 'previousValues=', previousValues, 'previousInitialValues=', previousInitialValues, 'newInitialValues=', newInitialValues, 'newValues=', newValues)
 
       if (keepDirty && registeredFields) {
         if (!deepEqual(newInitialValues, previousInitialValues)) {
@@ -456,65 +457,40 @@ function createReducer<M, L>(structure: Structure<M, L>) {
             const previousInitialValue = getIn(previousInitialValues, name)
             const previousValue = getIn(previousValues, name)
             const newInitialValue = getIn(newInitialValues, name)
-            
 
-            if (deepEqual(previousValue, previousInitialValue)) {
-              // Overwrite the old pristine value with the new pristine value
-
-              // This check prevents any 'setIn' call that would create useless
-              // nested objects, since the path to the new field value would
-              // evaluate to the same (especially for undefined values)
-              if (!deepEqual(getIn(newValues, name), newInitialValue)) {
-                newValues = setIn(newValues, name, newInitialValue)
-
-                if (DEBUG) console.log('overwritePristineValue:deepEqual:different','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue, 'newValues=',newValues);
-              } else {
-                if (DEBUG) console.log('overwritePristineValue:deepEqual:ignore','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue);
-              }
-              return
-            } 
-            if (!updateDeepValues) {
+            if (!newInitialValue) {
               return
             }
-            if (!isObject(newInitialValue)) {
-              return
-            }
-            //Need to analyse the inner elements of this Field
-            if (Array.isArray(newInitialValue)) {
-              newInitialValue.forEach((value, index) => {
-                if ((!Array.isArray(previousInitialValue)) ||  previousInitialValue.length <= index) {
-                  // new values at this level into the array
-                  newValues = setIn(newValues, `${name}[${index}]`, value)
 
-                  if (DEBUG)  console.log('overwritePristineValue:object:array','name=',name,'previousInitialValue=',previousInitialValue,'previousValue=',previousValue,'newInitialValue=',newInitialValue,'newValues=',newValues);
-                }
-
-                if (updateUnregisteredFields) {
-                  overwritePristineValue(`${name}[${index}]`)
-                }
+            // If the new initial value is an Object or an Array
+            // Then we recurse over the keys/items
+            if (isPlainObject(newInitialValue)) {
+              Object.keys(newInitialValue).forEach(key => {
+                overwritePristineValue(`${name}.${key}`)
               })
-              return;
-            } 
-          
-            forEach(keys(newInitialValue), (innerElementName) => {
-              const previousInnerInitialValue = getIn(previousInitialValue, innerElementName)
-              if (previousInnerInitialValue === undefined) {
-
-                // Add new values at this level.
-                const newInitialInnerValue = getIn(newInitialValue, innerElementName)
-                newValues = setIn(
-                  newValues,
-                  `${name}.${innerElementName}`,
-                  newInitialInnerValue
-                )
-
-                if (DEBUG) console.log('overwritePristineValue:object:any', 'name=', name, 'previousInitialValue=', previousInitialValue, 'previousValue=', previousValue, 'newInitialValue=', newInitialValue, 'newInitialInnerValue=', newInitialInnerValue, 'newValues=', newValues);
-              }
-
-              if (updateUnregisteredFields) {
-                overwritePristineValue(`${name}.${innerElementName}`)
-              }
-            })
+            } else if (typeof newInitialValue?.keySeq === 'function') {
+              // immutable-js case
+              newInitialValue
+                .keySeq()
+                .toArray()
+                .forEach(key => {
+                  overwritePristineValue(`${name}.${key}`)
+                })
+            } else if (typeof newInitialValue?.forEach === 'function') {
+              newInitialValue.forEach((item, index) => {
+                overwritePristineValue(`${name}[${index}]`)
+              })
+            }
+              // If the new initial value is not an Object nor an Array
+              // And is equal to previous initial value, Or if the previous initial value not exists
+              // And if the new initial value is different than previous value
+            // Then we assign the new initial value
+            else if (
+              (previousValue === previousInitialValue || !previousInitialValue) &&
+              previousValue !== newInitialValue
+            ) {
+              newValues = setIn(newValues, name, newInitialValue)
+            }
           }
 
           if (!updateUnregisteredFields) {
