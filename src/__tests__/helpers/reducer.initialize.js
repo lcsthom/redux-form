@@ -845,16 +845,16 @@ const describeInitialize = (reducer, expect, { fromJS }) => () => {
     })
   })
 
-  it('should keep only dirty value as keepDirty is true', () => {
+  it('should keep dirty value as keepDirty is true and keep values that do not have new initial values', () => {
     const values = {
-      myField: [{ name: 'Four' }, { name: 'Five' }, { name: 'Three' }]
+      myField: [{ name: 'One' }, { name: 'Two' }, { name: 'Six' }]
     }
     const initial = {
-      myField: [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }]
+      myField: [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }, { name: 'Four' }]
     }
 
     const newInitial = {
-      myField: [{ name: 'One' }]
+      myField: [{ name: 'Seven' }]
     }
 
     const registeredFields = {}
@@ -867,7 +867,7 @@ const describeInitialize = (reducer, expect, { fromJS }) => () => {
     expect(state).toEqualMap({
       foo: {
         registeredFields,
-        values: { myField: [{ name: 'Four' }, { name: 'Five' }, { name: 'Three' }] },
+        values: { myField: [{ name: 'Seven' }, { name: 'Two' }, { name: 'Six' }] },
         initial: newInitial
       }
     })
